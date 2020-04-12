@@ -1,4 +1,4 @@
-#### OAuth2 and OpenID Connect
+## OAuth2 and OpenID Connect
 
 ### OAuth2 basics
 
@@ -13,6 +13,10 @@
 - The template installs an Identity Server with a basic, in-memory setup.
   - Define Ids, Apis and Clients in `Config.cs`, but only as a first-hand solution to get started with development.
   - Developer signing keys.
+  - `UseIdentityServer()` to set up middleware.
+- We want to enable https.
+- We can go to `.well-known/openid-configuration` to get basic data on endpoints.
+- Add UI by installing template: `dotnet new is4ui`. Don't forget to uncomment **all** the commented out lines in `Startup.ConfigureServices` and `Startup.Configure`.
 
 ### Open points
 
