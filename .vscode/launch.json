@@ -5,7 +5,18 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "API",
+      "name": "IdentityServer",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/Marvin.IDP/bin/Debug/netcoreapp3.1/Marvin.IDP.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "console": "externalTerminal"
+    },
+    {
+      "name": "Client",
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
@@ -13,10 +24,10 @@
       "args": [],
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false,
-      "console": "internalConsole"
+      "console": "externalTerminal"
     },
     {
-      "name": "Client",
+      "name": "API",
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
@@ -24,6 +35,7 @@
       "args": [],
       "cwd": "${workspaceFolder}/src/ImageGallery.API",
       "stopAtEntry": false,
+      "console": "externalTerminal",
       "serverReadyAction": {
         "action": "openExternally",
         "pattern": "^\\s*Now listening on:\\s+(https?://\\S+)"
@@ -44,8 +56,8 @@
   ],
   "compounds": [
     {
-      "name": "API/Client",
-      "configurations": ["API", "Client"]
+      "name": "API/Client/IdentityServer",
+      "configurations": ["API", "Client", "IdentityServer"]
     }
   ]
 }
