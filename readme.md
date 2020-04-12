@@ -10,6 +10,9 @@
 - Install the one we want with `dotnet new is4empty`. This one is without any UI, we'll install that later.
 - Make sure the IDP project's name is neutral, because IDP will be used by multiple clients.
 - Install UI with `dotnet new is4ui`.
+- The template installs an Identity Server with a basic, in-memory setup.
+  - Define Ids, Apis and Clients in `Config.cs`, but only as a first-hand solution to get started with development.
+  - Developer signing keys.
 
 ### Open points
 
