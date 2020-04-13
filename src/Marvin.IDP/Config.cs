@@ -11,17 +11,18 @@ namespace Marvin.IDP
     {
         public static IEnumerable<IdentityResource> Ids =>
             new IdentityResource[]
-            { 
-                new IdentityResources.OpenId()
+            {
+                new IdentityResources.OpenId(),      // Mandatory since we are using OIDC.
+                new IdentityResources.Profile()
             };
 
         public static IEnumerable<ApiResource> Apis =>
-            new ApiResource[] 
+            new ApiResource[]
             { };
-        
+
         public static IEnumerable<Client> Clients =>
-            new Client[] 
+            new Client[]
             { };
-        
+
     }
 }
