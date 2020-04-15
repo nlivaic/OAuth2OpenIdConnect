@@ -53,6 +53,12 @@
     - Allowed scopes: which scopes are allowed by this client.
     - Client secrets
 
+### Setting up client
+
+- The main point here is to set up middleware and services so authentication and authorization is provided. The steps are outlined below, but for details, check [Client project's Startup.cs](src\ImageGallery.Client\Startup.cs). For more info on authentication schemes, consult [here](https://stackoverflow.com/questions/52492666/what-is-the-point-of-configuring-defaultscheme-and-defaultchallengescheme-on-asp/52493428#52493428).
+- Configure authentication services by calling `.AddAuthentication()` and providing default and challenge authentication schemas. You will also need to define how to sign in (persist) user using Open Id Authentication `.AddOpenIdConnect()`.
+- Add an authorization cookie.
+
 ### Open points
 
 - root folder `tempkey.rsa` - what is that?
