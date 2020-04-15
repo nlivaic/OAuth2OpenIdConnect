@@ -1,8 +1,22 @@
 ## OAuth2 and OpenID Connect
 
-### OAuth2 basics
+### Basics
 
-### OpenId Connect basics
+#### Flows/grants
+
+- Public client cannot be trusted with client credentials. E.g. browser-side app.
+- Private client can be trusted with client credentials. E.g. server-side app.
+- Flow depends on the type of client, dependending how the application can achieve authentication.
+- Authorization code
+- Implicit
+- Hybrid
+-
+
+#### Tokens
+
+- Identity token is obtained through authentication via the authorization endpoint at IDP.
+- Access token is obtained for authorization via the authorization endpoint at IDP.
+- JWT structure
 
 ### Setting up Identity Server 4
 
@@ -11,7 +25,8 @@
 - Make sure the IDP project's name is neutral, because IDP will be used by multiple clients.
 - Install UI with `dotnet new is4ui`.
 - The template installs an Identity Server with a basic, in-memory setup.
-  - Define Ids, Apis and Clients in `Config.cs`, but only as a first-hand solution to get started with development.
+  - Define Identity resources, Api resources and Client resources in `Config.cs`, but only as a first-hand solution to get started with development.
+  - Define `TestUsers`, but only once you've added the UI.
   - Developer signing keys.
   - `UseIdentityServer()` to set up middleware.
 - Https is already enabled by the `.UseIdentityServer()` middleware.
@@ -28,7 +43,15 @@
   - `IdentityResources.Profile()` gives access to profile-related claims, e.g. `given_name`, `family_name`.
 - API resources in `Config.cs`:
   - API resources are mapped to scopes that give access to APIs.
-- After you have configured any new scopes and claims, you can go to `.well-known/openid-configuration` and you should see both there, under `scopes-supported` and `claims-supported`.
+- After you have configured any new identity scopes and claims, you can go to `.well-known/openid-configuration` and you should see both there, under `scopes-supported` and `claims-supported`.
+- Client resources:
+  - Each client should have defined:
+    - Client Name: name to show on login screen.
+    - Client Id: unique identifier defining the client.
+    - Allowed grants: which flows are supported by this client.
+    - Redirect URI: default value, as per standard, is `<domain>/signin-oidc`. You must provide the redirect URI, but a non-default value can be used as well.
+    - Allowed scopes: which scopes are allowed by this client.
+    - Client secrets
 
 ### Open points
 
