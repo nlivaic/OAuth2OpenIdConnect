@@ -56,8 +56,13 @@
 ### Setting up client
 
 - The main point here is to set up middleware and services so authentication and authorization is provided. The steps are outlined below, but for details, check [Client project's Startup.cs](src\ImageGallery.Client\Startup.cs). For more info on authentication schemes, consult [here](https://stackoverflow.com/questions/52492666/what-is-the-point-of-configuring-defaultscheme-and-defaultchallengescheme-on-asp/52493428#52493428).
-- Configure authentication services by calling `.AddAuthentication()` and providing default and challenge authentication schemas. You will also need to define how to sign in (persist) user using Open Id Authentication `.AddOpenIdConnect()`.
-- Add an authorization cookie.
+- Configure authentication services by calling `.AddAuthentication()` and providing default and challenge authentication schemas.
+- Register and configure Open Id handler with `.AddOpenIdConnect()` to assist in several details. OIDC handler will:
+  - Generate authorization token request.
+  - Generate token request.
+  - Handle identity token validaiton
+- Add an encrypted authentication cookie with `.AddCookie()`.
+- Use the above authentication and authorization services as part of authentication and authorization middleware by calling `app.UseAuthentication()` and `app.UseAuthorization()`.
 
 ### Open points
 

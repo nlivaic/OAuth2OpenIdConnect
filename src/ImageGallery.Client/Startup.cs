@@ -39,10 +39,21 @@ namespace ImageGallery.Client
                 options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
             })
             .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme)
-            .AddOpenIdConnect(options =>
-            {
-                options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            });
+            .AddOpenIdConnect(
+                OpenIdConnectDefaults.AuthenticationScheme,
+                options =>
+                {
+                    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                    options.Authority = "https://localhost:44318/";     // Our IDP.
+                    options.ClientId = "imagegalleryclient";
+                    options.ResponseType = "code";
+                    options.UsePkce = false;
+                    //options.CallbackPath = new PathString("...");         // "/signin-oidc" default value set up by OIDC middleware. Uncomment to set some other URI.
+                    options.Scope.Add("openid");                            // Requested by OIDC middleware by default.
+                    options.Scope.Add("profile");                           // Requested by OIDC middleware by default.
+                    options.SaveTokens = true;                              // Allows the middleware to save tokens received from OIDC provider to be used afterwards.
+                    options.ClientSecret = "secret";
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -65,6 +76,9 @@ namespace ImageGallery.Client
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            app.UseAuthentication();
+            app.UseAuthentication();
 
             app.UseEndpoints(endpoints =>
             {

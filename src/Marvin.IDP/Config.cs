@@ -27,9 +27,9 @@ namespace Marvin.IDP
                 new Client
                 {
                     ClientName = "ImageGallery",
-                    ClientId = "Some unique client id",
+                    ClientId = "imagegalleryclient",
                     AllowedGrantTypes = GrantTypes.Code,
-                    RedirectUris = { "https://localhost:44389/signin-oidc" },
+                    RedirectUris = { "https://localhost:44389/signin-oidc" },   // Default value used by OIDC middleware on client.
                     AllowedScopes = { IdentityServerConstants.StandardScopes.OpenId, IdentityServerConstants.StandardScopes.Profile },
                     ClientSecrets = { new Secret ("secret".Sha256()) }
                 }
