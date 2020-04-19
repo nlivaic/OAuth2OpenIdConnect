@@ -29,7 +29,9 @@ namespace Marvin.IDP
                     ClientName = "ImageGallery",
                     ClientId = "imagegalleryclient",
                     AllowedGrantTypes = GrantTypes.Code,
+                    RequirePkce = true,
                     RedirectUris = { "https://localhost:44389/signin-oidc" },   // Default value used by OIDC middleware on client.
+                    PostLogoutRedirectUris = { "https://localhost:44389/signout-callback-oidc" },
                     AllowedScopes = { IdentityServerConstants.StandardScopes.OpenId, IdentityServerConstants.StandardScopes.Profile },
                     ClientSecrets = { new Secret ("secret".Sha256()) }
                 }

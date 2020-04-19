@@ -44,14 +44,15 @@ namespace ImageGallery.Client
                 options =>
                 {
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                    options.Authority = "https://localhost:44318/";         // Our IDP.
+                    options.Authority = "https://localhost:44318/";             // Our IDP.
                     options.ClientId = "imagegalleryclient";
                     options.ResponseType = "code";
-                    options.UsePkce = false;
-                    //options.CallbackPath = new PathString("...");         // "/signin-oidc" default value set up by OIDC middleware. Uncomment to set some other URI.
-                    options.Scope.Add("openid");                            // Requested by OIDC middleware by default.
-                    options.Scope.Add("profile");                           // Requested by OIDC middleware by default.
-                    options.SaveTokens = true;                              // Allows the middleware to save tokens received from OIDC provider to be used afterwards.
+                    // options.UsePkce = false;                                 // Defaults to true.
+                    //options.CallbackPath = new PathString("...");             // "/signin-oidc" default value set up by OpenIdConnect middleware. Uncomment to set some other URI.
+                    //options.SignedOutCallbackPath = new PathString("...");    // "/signout-callback-oidc" default value set up by OpenIdConnect middleware. Uncomment to set some other URI.
+                    options.Scope.Add("openid");                                // Requested by OIDC middleware by default.
+                    options.Scope.Add("profile");                               // Requested by OIDC middleware by default.
+                    options.SaveTokens = true;                                  // Allows the middleware to save tokens received from OIDC provider to be used afterwards.
                     options.ClientSecret = "secret";
                 });
         }

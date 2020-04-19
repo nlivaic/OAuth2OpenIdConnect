@@ -21,8 +21,22 @@
 - Identity token is used to create a claims identity (`ClaimsPrincipal User`).
 - Access token is obtained for authorization via the authorization endpoint at IDP.
 - JWT structure:
-
   - [Specification](https://tools.ietf.org/html/rfc7519)
+
+#### Relevant endpoints
+
+##### Client
+
+- `/signin-oidc`
+- `/signout-callback-oidc`
+
+##### IDP
+
+- `.well-known/openid-configuration`
+- `/connect/authorize`
+- `/connect/token`
+- `/connect/endsession`
+- `/connect/userinfo`
 
 ### Setting up Identity Server 4
 
@@ -73,6 +87,7 @@
   - Generate token request.
   - Handle identity token validation
 - Add an encrypted authentication cookie with `.AddCookie()`.
+- By default the OpenIdConnect middleware is defined with the sign in callback endpoint at `/signin-oidc`. This can be overridden by providing a value to the `CallbackPath`.
 - Use the above authentication and authorization services as part of authentication and authorization middleware by calling `app.UseAuthentication()` and `app.UseAuthorization()`.
 
 ### Authorization code flow
@@ -108,6 +123,18 @@
 
 - If the attacker gets a hold of the users authorization code, he can swap the user's browser session with his own. This way the attacker now has the victim's privileges. Details can be found [here](https://tools.ietf.org/html/draft-ietf-oauth-security-topics-14#page-21).
 - Advised approach with authorization code flow is to utilize PKCE (Proof Key for Code Exchange) alongside it. ![PKCE](https://user-images.githubusercontent.com/26722936/79683449-88962500-822a-11ea-8279-3272a0750cd6.png)
+- Setup:
+  - At the IDP, you enable it per client, by adding a `RequirePkce = true`.
+  - At the client app, configure the `OpenIdConnect` middleware with `options.UsePkce = true` (or just omit the line, since the middleware defaults to true).
+
+#### Logout
+
+- Sign out of the client app by deleting the authentication cookie. This is done by calling `HttpContext.SignOutAsync(CookieAuthenticationScheme.CookieAuthenticationDefaults.LogScheme)`.
+- It is not enough to simply log out of the client app, as we will simply keep getting redirected back to the IDP. Since we are still logged in the IDP, it will redirect us back to the client app with a new token. We must also log out of the IDP because that is the only way IDP's authentication cookie can get deleted. This is done by calling `HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme)`. Calling the `SignOutAsync` will redirect to the end session endpoint at the IDP (`/connect/endsession`) causing the IDP's authentication cookie to get deleted. Also note the token itself was sent to the IDP (in the query string, `id_token_hint`) so the IDP can double check who is doing the logout and prevent any attacks.
+- Once both of the above are set up, we are logged out of both the client app and IDP. However, two issues exist here. First, if you take a look at the IDP output, you will notice a warning saying "_Invalid PostLogoutRedirectUri_". Second, we are then stuck at the IDP's logged out page, which is not user-friendly. We should tell our app and the IDP where to redirect after the sign out. Both of these points are addressed below:
+  - Client app: by default the OpenIdConnect middleware defines the sign out callback endpoint at `/signout-callback-oidc`. This can be overridden by providing a value to the `SignedOutCallbackPath`. In any case, sign out callback URI is sent to the IDP on logout redirect as `post_logout_redirect_uri` query string.
+  - IDP: same value **must** be defined on the IDP side as well, per client. Callback URI is provided to the `PostLogoutRedirectUris`, you cannot rely on default URIs here. Because we didn't provide this value earlier, the above "_Invalid PostLogoutRedirectUri_" warning was issued by the IDP.
+  - IDP: at this point the IDP does not issue any warnings since callback URIs are sorted out. However, it still does not redirect to the callback URI. This must be manually enabled by setting `AccountOptions.AutomaticRedirectAfterSignOut = true`.
 
 ### Open points
 
