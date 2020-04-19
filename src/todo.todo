@@ -1,0 +1,4 @@
+☐ Problems when starting the solution via VS Code:
+    API http://localhost:44366
+    Client https://localhost:44389	@5000, 5001
+    IDP https://localhost:44318	Not started.

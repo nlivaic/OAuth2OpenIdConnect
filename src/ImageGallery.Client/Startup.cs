@@ -44,7 +44,7 @@ namespace ImageGallery.Client
                 options =>
                 {
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                    options.Authority = "https://localhost:44318/";     // Our IDP.
+                    options.Authority = "https://localhost:44318/";         // Our IDP.
                     options.ClientId = "imagegalleryclient";
                     options.ResponseType = "code";
                     options.UsePkce = false;
@@ -78,7 +78,7 @@ namespace ImageGallery.Client
             app.UseRouting();
 
             app.UseAuthentication();
-            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {

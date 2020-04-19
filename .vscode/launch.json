@@ -13,7 +13,10 @@
       "args": [],
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false,
-      "console": "externalTerminal"
+      "console": "externalTerminal",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
     },
     {
       "name": "Client",
@@ -24,7 +27,10 @@
       "args": [],
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false,
-      "console": "externalTerminal"
+      "console": "externalTerminal",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
     },
     {
       "name": "API",

@@ -54,6 +54,8 @@ namespace Marvin.IDP
                 {
                     webBuilder.UseStartup<Startup>();
                     webBuilder.UseSerilog();
+                    webBuilder.UseUrls("https://localhost:44318");
+
                 });
     }
 }

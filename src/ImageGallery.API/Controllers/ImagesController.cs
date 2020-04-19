@@ -22,11 +22,11 @@ namespace ImageGallery.API.Controllers
             IWebHostEnvironment hostingEnvironment,
             IMapper mapper)
         {
-            _galleryRepository = galleryRepository ?? 
+            _galleryRepository = galleryRepository ??
                 throw new ArgumentNullException(nameof(galleryRepository));
-            _hostingEnvironment = hostingEnvironment ?? 
+            _hostingEnvironment = hostingEnvironment ??
                 throw new ArgumentNullException(nameof(hostingEnvironment));
-            _mapper = mapper ?? 
+            _mapper = mapper ??
                 throw new ArgumentNullException(nameof(mapper));
         }
 
@@ -45,7 +45,7 @@ namespace ImageGallery.API.Controllers
 
         [HttpGet("{id}", Name = "GetImage")]
         public IActionResult GetImage(Guid id)
-        {          
+        {
             var imageFromRepo = _galleryRepository.GetImage(id);
 
             if (imageFromRepo == null)
@@ -73,7 +73,7 @@ namespace ImageGallery.API.Controllers
 
             // create the filename
             string fileName = Guid.NewGuid().ToString() + ".jpg";
-            
+
             // the full file path
             var filePath = Path.Combine($"{webRootPath}/images/{fileName}");
 
@@ -101,7 +101,7 @@ namespace ImageGallery.API.Controllers
 
         [HttpDelete("{id}")]
         public IActionResult DeleteImage(Guid id)
-        {            
+        {
             var imageFromRepo = _galleryRepository.GetImage(id);
 
             if (imageFromRepo == null)
@@ -117,7 +117,7 @@ namespace ImageGallery.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateImage(Guid id, 
+        public IActionResult UpdateImage(Guid id,
             [FromBody] ImageForUpdate imageForUpdate)
         {
             var imageFromRepo = _galleryRepository.GetImage(id);
