@@ -35,10 +35,10 @@ This is a test.
 ##### IDP
 
 - `.well-known/openid-configuration`
-- `/connect/authorize`
-- `/connect/token`
-- `/connect/endsession`
-- `/connect/userinfo`
+- `/connect/authorize` - authorization endpoint
+- `/connect/token` - token endpoint
+- `/connect/endsession` - deletes the authentication token on IDP
+- `/connect/userinfo` - identity claims for the logged in user
 
 ### Setting up Identity Server 4
 
@@ -106,13 +106,16 @@ This is a test.
 - Client middleware detects the user is not logged in and cannot authenticate.
 - Client middleware redirects the user to the IDP, based on information provided to the middleware.
 - User gives credentials to IDP.
-- In the response, IDP embeds the authorization code in the redirect URI returned to the front-end.
-- Redirect to provided URI.
+- Depending on the `response_mode` the client initially provided to the IDP, the IDP returns to the client an authorization code:
+  - `uri` - IDP returns a `302` and the authorization code is embedded in the redirect URI found in the `Location` header. Browser redirects to the default `signin-oidc` (or some other explicitly provided non-default endpoint) endpoint in the client app.
+  - `form_post` - IDP returns a `200` and the response payload is a form post. The authorization code is contained within the `<form>` elements as a postback value. The client app's callback `signin-oidc` (or whatever) is in the form's `action` attribute.
+- Browser redirects/posts to provided URI.
 - On the server:
   - Client middleware intercept the request, finds the authorization code.
-  - Sends an identity token request to the **token endpoint**. IDP validates the authorization code and returns identity token.
-  - Identity token is validated on the server.
-  - Server creates a claims identity (user). This is what is accessible through `Controller.User`.
+  - Sends an identity token request (along with code verifier if PKCE is used) to the **token endpoint**. IDP validates (if PKCE is used) the code verifier and the authorization code, then returns identity token.
+  - Identity token and access token are validated on the server.
+  - If fetching user claims from the `/userinfo` endpoint, client app passes the access token to the endpoint. Endpoint validates the token and returns the claims associated with the profiles in the access token. Please note there is more on this in the [Identity Claims](#identity-claims) section.
+  - Client app creates a claims identity (user). This is what is accessible through `Controller.User`.
   - Authentication ticket is created, encrypted and stored in an encrypted cookie.
 - Above steps are facilitated through the use of the Authentication and OpenIdConnect middlewares, but could also be done manually.
 
@@ -124,7 +127,7 @@ This is a test.
 #### Authorization Code Injection Attack
 
 - If the attacker gets a hold of the users authorization code, he can swap the user's browser session with his own. This way the attacker now has the victim's privileges. Details can be found [here](https://tools.ietf.org/html/draft-ietf-oauth-security-topics-14#page-21).
-- Advised approach with authorization code flow is to utilize PKCE (Proof Key for Code Exchange) alongside it. ![PKCE](https://user-images.githubusercontent.com/26722936/79683449-88962500-822a-11ea-8279-3272a0750cd6.png)
+- Advised approach with authorization code flow is to utilize PKCE (Proof Key for Code Exchange) alongside it. ![PKCE](https://user-images.githubusercontent.com/26722936/79879157-a0b6a180-83ee-11ea-9523-1e1ee3a9f771.png)
 - Setup:
   - At the IDP, you enable it per client, by adding a `RequirePkce = true`.
   - At the client app, configure the `OpenIdConnect` middleware with `options.UsePkce = true` (or just omit the line, since the middleware defaults to true).
@@ -137,6 +140,12 @@ This is a test.
   - Client app: by default the OpenIdConnect middleware defines the sign out callback endpoint at `/signout-callback-oidc`. This can be overridden by providing a value to the `SignedOutCallbackPath`. In any case, sign out callback URI is sent to the IDP on logout redirect as `post_logout_redirect_uri` query string.
   - IDP: same value **must** be defined on the IDP side as well, per client. Callback URI is provided to the `PostLogoutRedirectUris`, you cannot rely on default URIs here. Because we didn't provide this value earlier, the above "_Invalid PostLogoutRedirectUri_" warning was issued by the IDP.
   - IDP: at this point the IDP does not issue any warnings since callback URIs are sorted out. However, it still does not redirect to the callback URI. This must be manually enabled by setting `AccountOptions.AutomaticRedirectAfterSignOut = true`.
+
+#### Identity claims
+
+- Identity token does not include any claims by default, except the claim `sub` because it is associated with profile `openid`. This can be changed by setting the `Client.AlwaysIncludeUserClaimsInIdToken = true`, but this can cause the token to become very big, which can be an issue for older browsers if the token is returned through a query string. A better approach is for the client app to issue a request to the `/userinfo` endpoint.
+- Calling `/userinfo` endpoint requires an **access token** with scopes relating to the claims to be returned.
+- On the client app, define the Open Id Connect middleware with `options.GetClaimsFromUserInfoEndpoint = true`. This way, once the identity token is obtained and validated by the middleware, it will go to the `/userinfo` endpoint and request the user claims. Check the above diagram for more on that.
 
 ### Open points
 

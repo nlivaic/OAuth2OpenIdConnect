@@ -54,6 +54,7 @@ namespace ImageGallery.Client
                     options.Scope.Add("profile");                               // Requested by OIDC middleware by default.
                     options.SaveTokens = true;                                  // Allows the middleware to save tokens received from OIDC provider to be used afterwards.
                     options.ClientSecret = "secret";
+                    options.GetClaimsFromUserInfoEndpoint = true;
                 });
         }
 
