@@ -1,4 +1,5 @@
-﻿using ImageGallery.Client.ViewModels;
+﻿using IdentityModel.Client;
+using ImageGallery.Client.ViewModels;
 using ImageGallery.Model;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -187,6 +188,45 @@ namespace ImageGallery.Client.Controllers
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
+        }
+
+        public async Task<IActionResult> OrderFrame()
+        {
+            // Generate Http Client based on the services configured in Startup.ConfigureServices()
+            var idpClient = _httpClientFactory.CreateClient("IDPClient");
+            // Call /.well-known/openid-configuration to get the discovery document with the endpoints-
+            var discoveryDocumentResponse = await idpClient.GetDiscoveryDocumentAsync();
+            if (discoveryDocumentResponse.IsError)
+            {
+                throw new Exception(
+                    "Problem accessing the discovery endpoint",
+                    discoveryDocumentResponse.Exception);
+            }
+            // Extract userinfo endpoint's URI
+            var userInfoEndpoint = discoveryDocumentResponse.UserInfoEndpoint;
+            // We call userinfo with the access token.
+            // Only the claims belonging to the scopes found in the access token are returned.
+            var accessToken = await HttpContext.GetTokenAsync(OpenIdConnectParameterNames.AccessToken);
+            var userInfoResponse = await idpClient.GetUserInfoAsync(
+                new UserInfoRequest
+                {
+                    Address = userInfoEndpoint,
+                    Token = accessToken
+                }
+            );
+            if (userInfoResponse.IsError)
+            {
+                throw new Exception(
+                    "Problem accessing the userinfo endpoint",
+                    userInfoResponse.Exception);
+            }
+            // Find the claim.
+            var address = userInfoResponse
+                .Claims
+                .FirstOrDefault(c => c.Type == "address")?
+                .Value;
+            OrderFrameViewModel orderFrameViewModel = new OrderFrameViewModel(address);
+            return View(orderFrameViewModel);
         }
 
         public async Task WriteOutIdentityInformation()

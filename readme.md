@@ -19,11 +19,28 @@ This is a test.
 
 #### Tokens
 
-- Identity token is obtained through authentication via the authorization endpoint at IDP.
-- Identity token is used to create a claims identity (`ClaimsPrincipal User`).
-- Access token is obtained for authorization via the authorization endpoint at IDP.
 - JWT structure:
   - [Specification](https://tools.ietf.org/html/rfc7519)
+
+##### Identity Token
+
+- Identity token is obtained through authentication via the authorization endpoint at IDP.
+- Identity token is used to create a claims identity (`ClaimsPrincipal User`).
+- Relevant standard claims:
+  - `sub` - user identifier, returned if using Open Id Connect (signalled by the `openid` profile).
+  - `aud` - client app identifier
+  - `iss` - issuing authority, the IDP.
+  - `iat` - time the JWT was issued at. Unix time.
+  - `exp` - time on or after the JWT is expired. Unix time.
+  - `nbf` - not before, signifies the time before which the JWT is not valid for processing. Unix time.
+  - `auth_time` - time of the original authentication. Unix time.
+  - `amr` - authentication method references. An array of identifiers for authentication methods. E.g. "pwd" for password.
+  - `nonce` - number only used once. Generated on the client, sent back by the IDP to prevent CSRF attacks.
+  - `at-hash` - access token hash value, linking this specific identity token to the access token.
+
+##### Access token
+
+- Access token authorizes the client application to access an API.
 
 #### Relevant endpoints
 
@@ -34,11 +51,16 @@ This is a test.
 
 ##### IDP
 
-- `.well-known/openid-configuration`
-- `/connect/authorize` - authorization endpoint
-- `/connect/token` - token endpoint
-- `/connect/endsession` - deletes the authentication token on IDP
-- `/connect/userinfo` - identity claims for the logged in user
+- `/.well-known/openid-configuration` - discovery document with all the other endpoints. The only endpoint in this section that is guaranteed to be found on this URI. Others below could be relative to some other URI. If you need to talk to any of the below endpoints, it is best to first call discovery document and fetch URIs from there.
+- `/authorize` - authorization endpoint
+- `/token` - token endpoint
+- `/endsession` - deletes the authentication token on IDP
+- `/userinfo` - identity claims for the logged in user
+
+#### Claims
+
+- Claims Principal is the logged in user.
+- Claims Identity is a set of claims for the logged in user. A Claims Principal can have multiple sets of Claims Identity, each set coming from another source. E.g. multi-factor authentication, with each factor asserting its own claims. Or another example, client app receives some claims via the IDP and after authenticating the user fetches an additional set of claims from an internal database.
 
 ### Setting up Identity Server 4
 
@@ -99,6 +121,7 @@ This is a test.
 - Utilizes front-channel and back-channel communication.
 - Authorization code is a short-lived proof of who the user is. It binds the front-end session between the user and the client with the back-end session between the client server and IDP. It is obtanied from the authorization endpoint.
 - Identity token is a JWT token with a list of claims, obtained from the token endpoint. These claims are used by the server to create a claims identity and log the user in using an encrypted cookie.
+- `response_type=code`
 
 #### Flow
 
@@ -121,13 +144,13 @@ This is a test.
 
 #### Checking the token for yourself.
 
-- Since the identity token is obtained through back-channel communication, you cannot see it in Chrome or any of the logs. You can get the token from your controller by calling `HttpContext.GetTokenAsync(OpenIdConnectParameterNames.IdToken)` and writing it out to the debug output.
-- Now that you have the token, you can make sure the claims identity user has been created from the token at hand by comparing the token claim `sub` and claim `nameidentifier` from the `User` object. Both should be the same.
+- Since the identity token is obtained through back-channel communication, you cannot see it in Chrome or any of the logs. You can get the token from your controller by calling `HttpContext.GetTokenAsync(OpenIdConnectParameterNames.IdToken)` and writing it out to the debug output. For more on this take a look at [GalleryController.WriteOutIdentityInformation](src\ImageGallery.Client\Controllers\GalleryController.cs).
+- Now that you have the token, you can make sure the claims identity user has been created from the token at hand by comparing the token claim `sub` and claim `nameidentifier` from the `User` object. Both should be the same. Now, the reason we are looking at two differently named claims is discussed below at [Claim Transformation](#claim-transformation).
 
 #### Authorization Code Injection Attack
 
 - If the attacker gets a hold of the users authorization code, he can swap the user's browser session with his own. This way the attacker now has the victim's privileges. Details can be found [here](https://tools.ietf.org/html/draft-ietf-oauth-security-topics-14#page-21).
-- Advised approach with authorization code flow is to utilize PKCE (Proof Key for Code Exchange) alongside it. ![PKCE](https://user-images.githubusercontent.com/26722936/79879157-a0b6a180-83ee-11ea-9523-1e1ee3a9f771.png)
+- Advised approach is to utilize PKCE (Proof Key for Code Exchange) when going with the authorization code flow. ![PKCE](https://user-images.githubusercontent.com/26722936/79879157-a0b6a180-83ee-11ea-9523-1e1ee3a9f771.png)
 - Setup:
   - At the IDP, you enable it per client, by adding a `RequirePkce = true`.
   - At the client app, configure the `OpenIdConnect` middleware with `options.UsePkce = true` (or just omit the line, since the middleware defaults to true).
@@ -141,12 +164,41 @@ This is a test.
   - IDP: same value **must** be defined on the IDP side as well, per client. Callback URI is provided to the `PostLogoutRedirectUris`, you cannot rely on default URIs here. Because we didn't provide this value earlier, the above "_Invalid PostLogoutRedirectUri_" warning was issued by the IDP.
   - IDP: at this point the IDP does not issue any warnings since callback URIs are sorted out. However, it still does not redirect to the callback URI. This must be manually enabled by setting `AccountOptions.AutomaticRedirectAfterSignOut = true`.
 
-#### Identity claims
+### Claims
+
+- Can be used for identity-related information and for authorization.
+
+#### Identity Claims
 
 - Identity token does not include any claims by default, except the claim `sub` because it is associated with profile `openid`. This can be changed by setting the `Client.AlwaysIncludeUserClaimsInIdToken = true`, but this can cause the token to become very big, which can be an issue for older browsers if the token is returned through a query string. A better approach is for the client app to issue a request to the `/userinfo` endpoint.
 - Calling `/userinfo` endpoint requires an **access token** with scopes relating to the claims to be returned.
-- On the client app, define the Open Id Connect middleware with `options.GetClaimsFromUserInfoEndpoint = true`. This way, once the identity token is obtained and validated by the middleware, it will go to the `/userinfo` endpoint and request the user claims. Check the above diagram for more on that.
+- On the client app, define Open Id Connect middleware with `options.GetClaimsFromUserInfoEndpoint = true`. This way, once the identity token is obtained and validated by the middleware, the middleware will go to the `/userinfo` endpoint and request the user claims. Check the above diagram for more on that.
+- Calling `/userinfo` manually:
+  - We might do this so as to keep private data out of the authentication cookie, to keep the cookie small and to have up-to-date data.
+  - Such a request is a GET (but can be POST as well), with access token as a Bearer token. Such a call will return claims related to scopes in the access token.
+  - For more information and a demo, take a look at `GalleryController.OrderFrame` method [here](src\ImageGallery.Client\Controllers\GalleryController.cs). Bear in mind you have to import an `IdentityModel` package.
 
-### Open points
+#### Role-based Authorization
+
+#### Claim Transformation
+
+- This section describes which claims the IDP will return (either by default or in relation to the requested scopes). We will also talk about how client app Open Id Connect middleware filters and/or maps claims to other claims.
+- Some claims are returned from IDP, such as `sid`, `idp`, `auth_time` etc even though they were not requested. They are always returned by the IDP as they are considered default. Such claims are not filtered out by Open Id Connect middleware. They can be explicitly filtered out when setting up Open Id Connect middleware.
+- Open Id Connect middleware only passes through claims that are default (above) or have an explicit mapping defined, e.g. `sub`, `given_name`, `family_name`. All the other claims out there are either explicitly filtered out by the middleware or not mentioned at all (and thus filtered out).
+- What the above means is default claims and claims scoped `openid` and `profile` are received without any explicit requesting by the client app. Some of the claims may get filtered out on the client app. However, claims belonging to any other scopes (e.g. `address` scope), will need explicit requesting and even then will need explicit mapping on the client app to get into the claims identity collection.
+- Further, claims received from IDP are transformed according to a dictionary consulted by Open Id Connect middleware. This can be observed when the `sub` claim is transformed to `nameidentifier`. In order to skip the transformation we must clear the dictionary. This is done in `Startup` constructor by calling `JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear()`.
+- Some of the claims are filtered automatically by the middleware (e.g. `nbf`). Removing this **filter** is done by configuring Open Id Connect middleware with `options.ClaimActions.Remove("nbf")`, thus allowing `nbf` to get through to the client app.
+- Some of the claims (e.g. `idp` and `sid`) are not needed in the client app, but are not filtered automatically. Keeping them around makes authentication cookie larger than necessary and we have no need for those claims. To filter these out we must configure Open Id Connect middleware with `options.ClaimActions.DeleteClaim("sid")`. Claims to filter out explicitly on client app: `sid`, `idp`, `auth_time`, `s_hash`.
+- And yes, the filter naming above is confusing.
+- You can also map claim type from the token to another type in the claims collection.
+- It is advisable not to explicitly filter out claim `amr`, since some applications might allow or block certain functionalities, depending on how strong the authentication method was.
+
+### Hybrid Flow
+
+- Similar to authorization code flow, but identity token is returned alongside authorization code via the front-channel. Authorization code is still exchanged via the back-channel for the identity token. Both identity tokens are then compared for equality, this way attacks are mitigated.
+- Downside here is the identity token is received via the front-channel, potentially leaking personally identifiable information. Another downside is the client-side implementation of attack mitigation is more complex to implement, while with authorization code flow the client only has to generate a PKCE code verifier.
+- Conclusion: even though the hybrid flow is a secure option, rather use authorization code for ease of use.
+
+### Open Points
 
 - root folder `tempkey.rsa` - what is that?

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Net.Http.Headers;
 using System;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace ImageGallery.Client
 {
@@ -17,6 +19,7 @@ namespace ImageGallery.Client
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
+            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();         // Stop transforming claims from the token.
         }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -29,6 +32,13 @@ namespace ImageGallery.Client
             services.AddHttpClient("APIClient", client =>
             {
                 client.BaseAddress = new Uri("https://localhost:44366/");
+                client.DefaultRequestHeaders.Clear();
+                client.DefaultRequestHeaders.Add(HeaderNames.Accept, "application/json");
+            });
+            // create an HttpClient used for accessing the IDP
+            services.AddHttpClient("IDPClient", client =>
+            {
+                client.BaseAddress = new Uri("https://localhost:44318/");
                 client.DefaultRequestHeaders.Clear();
                 client.DefaultRequestHeaders.Add(HeaderNames.Accept, "application/json");
             });
@@ -50,11 +60,18 @@ namespace ImageGallery.Client
                     // options.UsePkce = false;                                 // Defaults to true.
                     //options.CallbackPath = new PathString("...");             // "/signin-oidc" default value set up by OpenIdConnect middleware. Uncomment to set some other URI.
                     //options.SignedOutCallbackPath = new PathString("...");    // "/signout-callback-oidc" default value set up by OpenIdConnect middleware. Uncomment to set some other URI.
-                    options.Scope.Add("openid");                                // Requested by OIDC middleware by default.
-                    options.Scope.Add("profile");                               // Requested by OIDC middleware by default.
+                    // options.Scope.Add("openid");                             // Requested by OIDC middleware by default, so no need for it.
+                    // options.Scope.Add("profile");                            // Requested by OIDC middleware by default, so no need for it.
+                    options.Scope.Add("address");
                     options.SaveTokens = true;                                  // Allows the middleware to save tokens received from OIDC provider to be used afterwards.
                     options.ClientSecret = "secret";
-                    options.GetClaimsFromUserInfoEndpoint = true;
+                    options.GetClaimsFromUserInfoEndpoint = true;               // Call `/userinfo` to fetch additional identity claims.
+
+                    // options.ClaimActions.Remove("nbf");                      // Stop filtering "nbf" claim so it is fed into claim collection. Note: this is only for demo purposes, we have no need for "nbf", therefore this line is not needed.
+                    options.ClaimActions.DeleteClaim("sid");                    // Remove "sid" claim from claim collection.
+                    options.ClaimActions.DeleteClaim("idp");
+                    options.ClaimActions.DeleteClaim("auth_time");
+                    options.ClaimActions.DeleteClaim("s_hash");
                 });
         }
 

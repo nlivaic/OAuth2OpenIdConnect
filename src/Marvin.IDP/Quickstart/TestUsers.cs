@@ -21,7 +21,8 @@ namespace Marvin.IDP
                 Claims =
                 {
                     new Claim("given_name", "Frank"),
-                    new Claim("family_name", "Underwood")
+                    new Claim("family_name", "Underwood"),
+                    new Claim("address", "Main Street 1")
                 }
             },
             new TestUser
@@ -33,6 +34,7 @@ namespace Marvin.IDP
                 {
                     new Claim("given_name", "Claire"),
                     new Claim("family_name", "Underwood"),
+                    new Claim("address", "Big Road 13")
                 }
             }
         };

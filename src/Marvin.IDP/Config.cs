@@ -11,10 +11,11 @@ namespace Marvin.IDP
     public static class Config
     {
         public static IEnumerable<IdentityResource> Ids =>
-            new IdentityResource[]
+            new IdentityResource[]                   // Supported scopes.
             {
                 new IdentityResources.OpenId(),      // Mandatory since we are using OIDC.
-                new IdentityResources.Profile()
+                new IdentityResources.Profile(),
+                new IdentityResources.Address()
             };
 
         public static IEnumerable<ApiResource> Apis =>
@@ -32,8 +33,14 @@ namespace Marvin.IDP
                     RequirePkce = true,
                     RedirectUris = { "https://localhost:44389/signin-oidc" },   // Default value used by OIDC middleware on client.
                     PostLogoutRedirectUris = { "https://localhost:44389/signout-callback-oidc" },
-                    AllowedScopes = { IdentityServerConstants.StandardScopes.OpenId, IdentityServerConstants.StandardScopes.Profile },
-                    ClientSecrets = { new Secret ("secret".Sha256()) }
+                    AllowedScopes =
+                    {
+                        IdentityServerConstants.StandardScopes.OpenId,
+                        IdentityServerConstants.StandardScopes.Profile,
+                        IdentityServerConstants.StandardScopes.Address
+                    },
+                    ClientSecrets = { new Secret ("secret".Sha256()) },
+                    // AlwaysIncludeUserClaimsInIdToken = true                    // Enable if you want to skip the client app calling `/userinfo`.
                 }
             };
 
