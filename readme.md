@@ -25,7 +25,8 @@ This is a test.
 ##### Identity Token
 
 - Identity token is obtained through authentication via the authorization endpoint at IDP.
-- Identity token is used to create a claims identity (`ClaimsPrincipal User`).
+- Identity token is used to create a claims identity (`ClaimsPrincipal User`) on the client app.
+- Only claims relating to `openid profile` scopes are in the identity token. Claims belonging to other requested profiles (e.g. `roles` or `address` profiles) are not included in identity token.
 - Relevant standard claims:
   - `sub` - user identifier, returned if using Open Id Connect (signalled by the `openid` profile).
   - `aud` - client app identifier
@@ -41,6 +42,7 @@ This is a test.
 ##### Access token
 
 - Access token authorizes the client application to access an API.
+- The token is scoped to requested profiles.
 
 #### Relevant endpoints
 
@@ -78,7 +80,10 @@ This is a test.
 #### Setup
 
 - The template installs an Identity Server with a basic, in-memory setup.
-  - Define Identity resources, Api resources and Client resources in `Config.cs`, but only as a first-hand solution to get started with development.
+  - In [Config.cs](src\Marvin.IDP\Config.cs) you can provide first-hand configuration to get started with development efforts:
+    - Define Identity resources (a.k.a. profiles) that this Identity Server will provide.
+    - Api resources - Apis that will work with this Identity Server's tokens.
+    - Client resources - Clients and their details: client ids, client secrets, allowed scopes, allowed grants, PKCE, callback Uri...
   - Define `TestUsers`, but only once you've added the UI.
   - Developer signing keys.
   - `UseIdentityServer()` to set up middleware.
@@ -167,19 +172,23 @@ This is a test.
 ### Claims
 
 - Can be used for identity-related information and for authorization.
-- ## Open Id Connect middleware and Open Id standard have a way of determining which claims are requested. More on this in the [Claims Transformation](#claims-transformation) subsection below.
+- Open Id Connect middleware and Open Id standard have a way of determining which claims are requested. More on this in the [Claims Transformation](#claims-transformation) subsection below.
 
 #### Identity Claims
 
-- Identity token does not include any claims by default, except the claim `sub` because it is associated with profile `openid`. This can be changed by setting the `Client.AlwaysIncludeUserClaimsInIdToken = true`, but this can cause the token to become very big, which can be an issue for older browsers if the token is returned through a query string. A better approach is for the client app to issue a request to the `/userinfo` endpoint.
+- Identity token does not include **any** claims by default, except the claim `sub` because it is associated with profile `openid`. So, `given_name`, `family_name`, `address`, `role` etc are not in the identity token. This can be changed by setting the `Client.AlwaysIncludeUserClaimsInIdToken = true`, but this can cause the token to become very big, which can be an issue for older browsers if the token is returned through a query string. A better approach is for the client app to issue a request to the `/userinfo` endpoint.
 - Calling `/userinfo` endpoint requires an **access token** with scopes relating to the claims to be returned.
 - On the client app, define Open Id Connect middleware with `options.GetClaimsFromUserInfoEndpoint = true`. This way, once the identity token is obtained and validated by the middleware, the middleware will go to the `/userinfo` endpoint and request the user claims. Check the above diagram for more on that.
-- Calling `/userinfo` manually:
+- You can also call `/userinfo` manually from your code:
   - We might do this so as to keep private data out of the authentication cookie, to keep the cookie small and to have up-to-date data.
   - Such a request is a GET (but can be POST as well), with access token as a Bearer token. Such a call will return claims related to scopes in the access token.
   - For more information and a demo, take a look at `GalleryController.OrderFrame` method [here](src\ImageGallery.Client\Controllers\GalleryController.cs). Bear in mind you have to import an `IdentityModel` package.
 
 #### Role-based Authorization
+
+- Role is just another claim.
+- To make the .NET Claims Principal aware of a role, you must first fetch the role claim from the IDP and tell the Open Id Connect middleware which claim relates to a role concept: `options.TokenValidationParameters = new TokenValidationParameters { ..., RoleClaimType = JwtClaimTypes.Role }`. You can add different claims this way. I don't understand what all of this has to do with validating tokens. The point of doing it this way is to be able to call `User.IsInRole()`, which is much more user-friendly than poking aroung the `role` claim values.
+- To protect a controller action, you would utilize `[Authorize(Roles = "role1,role2,...")]`
 
 #### Claim and Profiles
 
@@ -194,7 +203,15 @@ This is a test.
 - And yes, the filter naming above is confusing.
 - You can also map claim type from the token to another type in the claims collection.
 - It is advisable not to explicitly filter out claim `amr`, since some applications might allow or block certain functionalities, depending on how strong the authentication method was.
-- Access token and profiles: authorization code flow gets scoped to profiles requested in the initial authentication request. These profiles are then written to both identity token and access token. On any subsequent requests e.g. to the `/userinfo` endpoint just send the access token, it is already scoped to appropriate profiles. You cannot add profiles on the fly.
+
+##### Adding a new claim and a new scope
+
+- On IDP:
+  - Add a new claim to the `User`: `TestUser.Claims = { ..., new Claim(...) }`.
+  - Add a new scope and map it to the new claim in [Config.cs](src\Marvin.IDP\Config.cs): `new IdentityResource(...)`.
+  - Allow the client access to the new scope: `Client.AllowedScopes = ...`.
+- On client:
+  - Since this is a custom claim scoped other than `openid profile`, we must map it manually. Define Open Id Connect middleware with `options.ClaimsActions.MapUniqueJsonKey()`.
 
 ### Hybrid Flow
 

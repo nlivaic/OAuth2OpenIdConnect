@@ -190,6 +190,7 @@ namespace ImageGallery.Client.Controllers
             await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
         }
 
+        [Authorize(Roles = "PayingUser")]
         public async Task<IActionResult> OrderFrame()
         {
             // Generate Http Client based on the services configured in Startup.ConfigureServices()

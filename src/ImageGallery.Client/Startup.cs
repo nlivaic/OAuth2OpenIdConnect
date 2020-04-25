@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using IdentityModel;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.IdentityModel.Tokens.Jwt;
@@ -63,15 +65,23 @@ namespace ImageGallery.Client
                     // options.Scope.Add("openid");                             // Requested by OIDC middleware by default, so no need for it.
                     // options.Scope.Add("profile");                            // Requested by OIDC middleware by default, so no need for it.
                     options.Scope.Add("address");
+                    options.Scope.Add("roles");
                     options.SaveTokens = true;                                  // Allows the middleware to save tokens received from OIDC provider to be used afterwards.
                     options.ClientSecret = "secret";
-                    options.GetClaimsFromUserInfoEndpoint = true;               // Call `/userinfo` to fetch additional identity claims.
+                    options.GetClaimsFromUserInfoEndpoint = true;               // Call `/userinfo` to fetch additional identity claims, such as `given_name`, ˙last_name`, `address` (if `address` scope was requested.)
 
                     // options.ClaimActions.Remove("nbf");                      // Stop filtering "nbf" claim so it is fed into claim collection. Note: this is only for demo purposes, we have no need for "nbf", therefore this line is not needed.
                     options.ClaimActions.DeleteClaim("sid");                    // Remove "sid" claim from claim collection.
                     options.ClaimActions.DeleteClaim("idp");
                     options.ClaimActions.DeleteClaim("auth_time");
                     options.ClaimActions.DeleteClaim("s_hash");
+                    options.ClaimActions.MapUniqueJsonKey("role", "role");      // Explictly map a custom claim to feed it into the Claims Identity.
+
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        NameClaimType = JwtClaimTypes.Name,
+                        RoleClaimType = JwtClaimTypes.Role
+                    };
                 });
         }
 
