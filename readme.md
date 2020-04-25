@@ -167,6 +167,7 @@ This is a test.
 ### Claims
 
 - Can be used for identity-related information and for authorization.
+- ## Open Id Connect middleware and Open Id standard have a way of determining which claims are requested. More on this in the [Claims Transformation](#claims-transformation) subsection below.
 
 #### Identity Claims
 
@@ -180,18 +181,20 @@ This is a test.
 
 #### Role-based Authorization
 
-#### Claim Transformation
+#### Claim and Profiles
 
 - This section describes which claims the IDP will return (either by default or in relation to the requested scopes). We will also talk about how client app Open Id Connect middleware filters and/or maps claims to other claims.
-- Some claims are returned from IDP, such as `sid`, `idp`, `auth_time` etc even though they were not requested. They are always returned by the IDP as they are considered default. Such claims are not filtered out by Open Id Connect middleware. They can be explicitly filtered out when setting up Open Id Connect middleware.
-- Open Id Connect middleware only passes through claims that are default (above) or have an explicit mapping defined, e.g. `sub`, `given_name`, `family_name`. All the other claims out there are either explicitly filtered out by the middleware or not mentioned at all (and thus filtered out).
-- What the above means is default claims and claims scoped `openid` and `profile` are received without any explicit requesting by the client app. Some of the claims may get filtered out on the client app. However, claims belonging to any other scopes (e.g. `address` scope), will need explicit requesting and even then will need explicit mapping on the client app to get into the claims identity collection.
+- Some claims are default according to the Open Id standard and are always returned from IDP even though they were not requested. Such claims are not filtered out by Open Id Connect middleware. They can be explicitly filtered out when setting up Open Id Connect middleware. Default claims are e.g. `sid`, `idp`, `auth_time` etc.
+- Some claims are requested by the Open Id Connect middleware even though the middleware has not been explicitly defined to ask for those profiles. Specifically, these profiles are `openid` and `profile`. `openid` profile returns `sub` claims while `profile` profile returns `given_name`, `family_name`. Open Id Connect middleware has explicit mappings for such claims, e.g. `sub`, `given_name`, `family_name`.
+- All the other claims out there are either explicitly filtered out by the Open Id Connect middleware or not mentioned at all (and thus filtered out).
+- To sum up, default claims and claims scoped `openid` and `profile` are received without any explicit requesting by the client app (if the client app is using the Open Id Connect middleware). Some of the received claims are then filtered out on the client app. To fetch claims belonging to any other scopes (e.g. `address` scope) the Open Id Connect middleware will need to be explicitly defined so and even then will need explicit mapping on the to get into the claims identity collection.
 - Further, claims received from IDP are transformed according to a dictionary consulted by Open Id Connect middleware. This can be observed when the `sub` claim is transformed to `nameidentifier`. In order to skip the transformation we must clear the dictionary. This is done in `Startup` constructor by calling `JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear()`.
 - Some of the claims are filtered automatically by the middleware (e.g. `nbf`). Removing this **filter** is done by configuring Open Id Connect middleware with `options.ClaimActions.Remove("nbf")`, thus allowing `nbf` to get through to the client app.
 - Some of the claims (e.g. `idp` and `sid`) are not needed in the client app, but are not filtered automatically. Keeping them around makes authentication cookie larger than necessary and we have no need for those claims. To filter these out we must configure Open Id Connect middleware with `options.ClaimActions.DeleteClaim("sid")`. Claims to filter out explicitly on client app: `sid`, `idp`, `auth_time`, `s_hash`.
 - And yes, the filter naming above is confusing.
 - You can also map claim type from the token to another type in the claims collection.
 - It is advisable not to explicitly filter out claim `amr`, since some applications might allow or block certain functionalities, depending on how strong the authentication method was.
+- Access token and profiles: authorization code flow gets scoped to profiles requested in the initial authentication request. These profiles are then written to both identity token and access token. On any subsequent requests e.g. to the `/userinfo` endpoint just send the access token, it is already scoped to appropriate profiles. You cannot add profiles on the fly.
 
 ### Hybrid Flow
 
