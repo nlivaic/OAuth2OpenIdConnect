@@ -1,9 +1,11 @@
 ﻿using IdentityModel;
+using ImageGallery.Client.HttpHandlers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -30,13 +32,17 @@ namespace ImageGallery.Client
             services.AddControllersWithViews()
                  .AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = null);
 
+            services.AddTransient<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddTransient<BearerTokenHandler>();
+
             // create an HttpClient used for accessing the API
             services.AddHttpClient("APIClient", client =>
             {
                 client.BaseAddress = new Uri("https://localhost:44366/");
                 client.DefaultRequestHeaders.Clear();
                 client.DefaultRequestHeaders.Add(HeaderNames.Accept, "application/json");
-            });
+            }).AddHttpMessageHandler<BearerTokenHandler>();                                     // Attach access token as Bearer token to all request send by this Http Client.
+
             // create an HttpClient used for accessing the IDP
             services.AddHttpClient("IDPClient", client =>
             {
@@ -56,7 +62,7 @@ namespace ImageGallery.Client
                 options =>
                 {
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                    options.Authority = "https://localhost:44318/";             // Our IDP.
+                    options.Authority = "https://localhost:44318/";             // Our IDP. Middleware uses this to know where to find public keys and endpoints.
                     options.ClientId = "imagegalleryclient";
                     options.ResponseType = "code";
                     // options.UsePkce = false;                                 // Defaults to true.
@@ -66,6 +72,7 @@ namespace ImageGallery.Client
                     // options.Scope.Add("profile");                            // Requested by OIDC middleware by default, so no need for it.
                     options.Scope.Add("address");
                     options.Scope.Add("roles");
+                    options.Scope.Add("imagegalleryapi");                       // Allow access to API via the access token.
                     options.SaveTokens = true;                                  // Allows the middleware to save tokens received from OIDC provider to be used afterwards.
                     options.ClientSecret = "secret";
                     options.GetClaimsFromUserInfoEndpoint = true;               // Call `/userinfo` to fetch additional identity claims, such as `given_name`, ˙last_name`, `address` (if `address` scope was requested.)

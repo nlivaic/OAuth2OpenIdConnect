@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using IdentityServer4.AccessTokenValidation;
 using ImageGallery.API.Entities;
 using ImageGallery.API.Services;
 using Microsoft.AspNetCore.Builder;
@@ -43,6 +44,12 @@ namespace ImageGallery.API
             // register AutoMapper-related services
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
+            services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
+                .AddIdentityServerAuthentication(options =>
+                    {
+                        options.Authority = "https://localhost:44318";      // Our IDP. Middleware uses this to know where to find public keys and endpoints.
+                        options.ApiName = "imagegalleryapi";                // Allows the access token validator to check if the access token `audience` is for this API.
+                    });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -73,6 +80,9 @@ namespace ImageGallery.API
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
