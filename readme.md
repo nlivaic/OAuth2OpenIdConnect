@@ -24,6 +24,7 @@ This is a test.
 
 ##### Identity Token
 
+- JWT exclusively.
 - Identity token is obtained through authentication via the authorization endpoint at IDP.
 - Identity token is used to create a claims identity (`ClaimsPrincipal User`) on the client app.
 - Only claims relating to `openid profile` scopes are in the identity token. Claims belonging to other requested profiles (e.g. `roles` or `address` profiles) are not included in identity token.
@@ -41,8 +42,16 @@ This is a test.
 
 ##### Access token
 
+- Usually a JWT, but not necessarily.
 - Access token authorizes the client application to access an API.
+- It is returned by the authorization endpoint.
 - The token is scoped to requested profiles.
+- Identity token has a claim `at_hash` linking the access token. Client app does limited validation by calculating its hash value and comparing to the identity tokens `at_hash`.
+- API also validates the access token.
+- Relevant claims:
+  - `aud` - the intended audience, i.e. names of API scopes. Optionally, it might also include names of IDP resources available with access token.
+  - `client_id` - client app identifier access token was issued to.
+  - `scope` - various scopes access token is scoped to. Each API is scoped. Identity information (e.g. `openid profile`) is scoped as well.
 
 #### Relevant endpoints
 
@@ -123,6 +132,7 @@ This is a test.
 
 #### Outline
 
+- Open Id Connect and OAuth2.
 - Utilizes front-channel and back-channel communication.
 - Authorization code is a short-lived proof of who the user is. It binds the front-end session between the user and the client with the back-end session between the client server and IDP. It is obtanied from the authorization endpoint.
 - Identity token is a JWT token with a list of claims, obtained from the token endpoint. These claims are used by the server to create a claims identity and log the user in using an encrypted cookie.
@@ -215,9 +225,14 @@ This is a test.
 
 ### Hybrid Flow
 
+- Open Id Connect only.
 - Similar to authorization code flow, but identity token is returned alongside authorization code via the front-channel. Authorization code is still exchanged via the back-channel for the identity token. Both identity tokens are then compared for equality, this way attacks are mitigated.
 - Downside here is the identity token is received via the front-channel, potentially leaking personally identifiable information. Another downside is the client-side implementation of attack mitigation is more complex to implement, while with authorization code flow the client only has to generate a PKCE code verifier.
 - Conclusion: even though the hybrid flow is a secure option, rather use authorization code for ease of use.
+
+### Client flow
+
+- machine to machine
 
 ### Open Points
 
