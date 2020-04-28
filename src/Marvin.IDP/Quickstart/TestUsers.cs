@@ -23,7 +23,9 @@ namespace Marvin.IDP
                     new Claim("given_name", "Frank"),
                     new Claim("family_name", "Underwood"),
                     new Claim("address", "Main Street 1"),
-                    new Claim("role", "FreeUser")
+                    new Claim("role", "FreeUser"),
+                    new Claim("subscription_level", "FreeUser"),
+                    new Claim("country", "be")
                 }
             },
             new TestUser
@@ -36,7 +38,9 @@ namespace Marvin.IDP
                     new Claim("given_name", "Claire"),
                     new Claim("family_name", "Underwood"),
                     new Claim("address", "Big Road 13"),
-                    new Claim("role", "PayingUser")
+                    new Claim("role", "PayingUser"),
+                    new Claim("subscription_level", "PayingUser"),
+                    new Claim("country", "be")
                 }
             }
         };

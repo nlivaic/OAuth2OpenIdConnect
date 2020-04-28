@@ -138,6 +138,7 @@ namespace ImageGallery.Client.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "PayingUser")]
         public async Task<IActionResult> AddImage(AddImageViewModel addImageViewModel)
         {
             if (!ModelState.IsValid)
@@ -190,7 +191,7 @@ namespace ImageGallery.Client.Controllers
             await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
         }
 
-        [Authorize(Roles = "PayingUser")]
+        [Authorize(Policy = "CanOrderFrame")]
         public async Task<IActionResult> OrderFrame()
         {
             // Generate Http Client based on the services configured in Startup.ConfigureServices()

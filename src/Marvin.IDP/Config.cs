@@ -18,14 +18,27 @@ namespace Marvin.IDP
                 new IdentityResources.Address(),
                 new IdentityResource(
                     "roles",
-                    "roles",
-                    new string[]{ "role" })
+                    "Roles",
+                    new string[]{ "role" }),
+                new IdentityResource(
+                    "subscription_level",
+                    "Subscription level",
+                    new string[]{ "subscription_level" }),
+                new IdentityResource(
+                    "country",
+                    "Country",
+                    new string[]{ "country" })
             };
 
         public static IEnumerable<ApiResource> Apis =>
             new ApiResource[]
             {
-                new ApiResource("imagegalleryapi")
+                new ApiResource(
+                    "imagegalleryapi",
+                    "Image Gallery API",
+                    new List<string>{               // IDP will include `role` claim with the access token when `imagegalleryapi` scope is requested.
+                        "role"
+                    })
             };
 
         public static IEnumerable<Client> Clients =>
@@ -45,7 +58,9 @@ namespace Marvin.IDP
                         IdentityServerConstants.StandardScopes.Profile,
                         IdentityServerConstants.StandardScopes.Address,
                         "roles",
-                        "imagegalleryapi"
+                        "imagegalleryapi",
+                        "subscription_level",
+                        "country"
                     },
                     ClientSecrets = { new Secret ("secret".Sha256()) },
                     // AlwaysIncludeUserClaimsInIdToken = true                    // Enable if you want to skip the client app calling `/userinfo`.

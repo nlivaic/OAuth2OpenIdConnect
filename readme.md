@@ -68,7 +68,7 @@ This is a test.
 - `/authorize` - authorization endpoint
 - `/token` - token endpoint
 - `/endsession` - deletes the authentication token on IDP
-- `/userinfo` - identity claims for the logged in user
+- `/userinfo` - identity claims for user. Accessed with access token. Intended to be called only by client app, not the APIs.
 
 #### Claims
 
@@ -214,9 +214,17 @@ This is a test.
 
 #### Role-based Authorization
 
+- `[Authorize(Roles = "role1,role2,...")]`
 - Role is just another claim.
-- To make the .NET Claims Principal aware of a role, you must first fetch the role claim from the IDP and tell the Open Id Connect middleware which claim relates to a role concept: `options.TokenValidationParameters = new TokenValidationParameters { ..., RoleClaimType = JwtClaimTypes.Role }`. You can add different claims this way. I don't understand what all of this has to do with validating tokens. The point of doing it this way is to be able to call `User.IsInRole()`, which is much more user-friendly than poking aroung the `role` claim values.
-- To protect a controller action, you would utilize `[Authorize(Roles = "role1,role2,...")]`
+- Can be applied on both the client app and API.
+- Client app:
+  - To make the .NET Claims Principal aware of a role, you must first fetch the role claim from the IDP (via `/userinfo`) and tell the Open Id Connect middleware which claim relates to a role concept: `options.TokenValidationParameters = new TokenValidationParameters { ..., RoleClaimType = JwtClaimTypes.Role }`. You can add different claims this way. The point of doing it this way is to have access to roles from your code:
+    - To be able to call `User.IsInRole()`, which is much more user-friendly than poking aroung the `role` claim values.
+    - Call `[Authorize(Roles="role1,role2...")]`
+- IDP:
+  - First of all, we need to get a role claim into the access token. This is a good way to go because otherwise the API will have to talk to `\userinfo` every time a request comes in, and that would be expensive. We do this by telling the IDP we want the `role` claim included in the access token along with the `imagegalleryapi` scope: `new ApiResource(..., new List<string> { claim here } )`.
+- API:
+  - Then, protect the API controller action with `[Authorize(Roles = "role1,role2,...")]`.
 
 #### Claim and Scopes
 
@@ -240,6 +248,12 @@ This is a test.
   - Allow the client access to the new scope: `Client.AllowedScopes = ...`.
 - On client:
   - Since this is a custom claim scoped other than `openid profile`, we must map it manually. Define Open Id Connect middleware with `options.ClaimsActions.MapUniqueJsonKey()`.
+
+#### Policy-based authorization
+
+- Better than role-based since it allows you to implement fine grained authorization more easily.
+- Check out `.AddAuthorization(authorizationOptions => authorizationOptions.AddOptions(...) )` in [Startup.cs](src\ImageGallery.Client\Startup.cs) for a basic case involving several claims and demanding the user to be authenticated.
+- A more complex case might require calling into the database, reading and comparing claim values, accessing HttpContext to read route data etc. This can be done by using `IAuthorizationRequirement` marker interface and `AuthorizationHandler<T>`. Checkout out `.AddAuthorization(authorizationOptions => authorizationOptions.AddOptions(...) )` [Startup.cs](src\ImageGallery.API\Startup.cs), []() and []().
 
 ### Hybrid Flow
 

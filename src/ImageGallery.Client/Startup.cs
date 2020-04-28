@@ -32,7 +32,7 @@ namespace ImageGallery.Client
             services.AddControllersWithViews()
                  .AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = null);
 
-            services.AddTransient<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddHttpContextAccessor();
             services.AddTransient<BearerTokenHandler>();
 
             // create an HttpClient used for accessing the API
@@ -72,6 +72,8 @@ namespace ImageGallery.Client
                     // options.Scope.Add("profile");                            // Requested by OIDC middleware by default, so no need for it.
                     options.Scope.Add("address");
                     options.Scope.Add("roles");
+                    options.Scope.Add("subscription_level");
+                    options.Scope.Add("country");
                     options.Scope.Add("imagegalleryapi");                       // Allow access to API via the access token.
                     options.SaveTokens = true;                                  // Allows the middleware to save tokens received from OIDC provider to be used afterwards.
                     options.ClientSecret = "secret";
@@ -83,12 +85,25 @@ namespace ImageGallery.Client
                     options.ClaimActions.DeleteClaim("auth_time");
                     options.ClaimActions.DeleteClaim("s_hash");
                     options.ClaimActions.MapUniqueJsonKey("role", "role");      // Explictly map a custom claim to feed it into the Claims Identity.
+                    options.ClaimActions.MapUniqueJsonKey("subscription_level", "subscription_level");      // Explictly map a custom claim to feed it into the Claims Identity.
+                    options.ClaimActions.MapUniqueJsonKey("country", "country");// Explictly map a custom claim to feed it into the Claims Identity.
 
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        NameClaimType = JwtClaimTypes.Name,
-                        RoleClaimType = JwtClaimTypes.Role
+                        NameClaimType = JwtClaimTypes.Name,     // Allow for calling into ClaimsIdentity.IsUserInRole(...)
+                        RoleClaimType = JwtClaimTypes.Role      // and [Authorize(Roles = ...)]
                     };
+                });
+            services.AddAuthorization(options =>
+                {
+                    options.AddPolicy(
+                        "CanOrderFrame",
+                        authorizationPolicy =>
+                        {
+                            authorizationPolicy.RequireAuthenticatedUser();
+                            authorizationPolicy.RequireClaim("subscription_level", "PayingUser");
+                            authorizationPolicy.RequireClaim("country", "be");
+                        });
                 });
         }
 
