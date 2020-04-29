@@ -10,7 +10,6 @@ namespace ImageGallery.API.Authorization
     {
         public MustOwnImageRequirement()
         {
-
         }
     }
 }

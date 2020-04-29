@@ -251,9 +251,11 @@ This is a test.
 
 #### Policy-based authorization
 
-- Better than role-based since it allows you to implement fine grained authorization more easily.
+- Binds multiple claims together into a policy.
+- A.k.a. Attribute-based authorization.
+- A role is still a claim, but with policies there is no need for roles as authorization is expressed in a different manner using policies.
 - Check out `.AddAuthorization(authorizationOptions => authorizationOptions.AddOptions(...) )` in [Startup.cs](src\ImageGallery.Client\Startup.cs) for a basic case involving several claims and demanding the user to be authenticated.
-- A more complex case might require calling into the database, reading and comparing claim values, accessing HttpContext to read route data etc. This can be done by using `IAuthorizationRequirement` marker interface and `AuthorizationHandler<T>`. Checkout out `.AddAuthorization(authorizationOptions => authorizationOptions.AddOptions(...) )` [Startup.cs](src\ImageGallery.API\Startup.cs), []() and []().
+- A more complex case might require calling into the database, reading and comparing claim values, accessing HttpContext to read route data etc. This can be done by using `IAuthorizationRequirement` marker interface and `AuthorizationHandler<T>`. Checkout out `.AddAuthorization(authorizationOptions => authorizationOptions.AddOptions(...) )` [Startup.cs](src\ImageGallery.API\Startup.cs), [MustOwnImageRequirement.cs](src\ImageGallery.API\Authorization\MustOwnImageRequirement.cs) and [MustOwnImageHandler.cs](src\ImageGallery.API\Authorization\MustOwnImageHandler.cs).
 
 ### Hybrid Flow
 
