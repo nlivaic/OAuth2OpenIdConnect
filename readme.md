@@ -39,6 +39,7 @@ This is a test.
   - `amr` - authentication method references. An array of identifiers for authentication methods. E.g. "pwd" for password.
   - `nonce` - number only used once. Generated on the client, sent back by the IDP to prevent CSRF attacks.
   - `at_hash` - access token hash value, linking this specific identity token to the access token.
+- Default lifetime 5 minutes.
 
 ##### Access token
 
@@ -46,14 +47,26 @@ This is a test.
 - Sent as Bearer token with each request to the API.
 - Access token authorizes the client application to access an API.
 - It is returned by the authorization endpoint.
-- Identity token has a claim `at_hash` linking the access token. Client app does limited validation by calculating its hash value and comparing to the identity tokens `at_hash`.
+- Identity token has a claim `at_hash` linking the access token. Client app does limited validation by calculating access token's hash value and comparing to the identity tokens `at_hash`.
 - API also validates the access token.
 - Relevant claims:
   - `sub` - user identifier, returned if using Open Id Connect (signaled by the `openid` scope).
   - `iss` - issuing authority, the IDP.
   - `aud` - the intended audience, i.e. names of API scopes representing APIs that can be accessed with this access token. So, to access an Image Gallery API, the `aud` must say `imagegalleryapi` and the access token must be scoped to `imagegalleryapi`. Optionally, IDP might also include itself in the list (so client app can access e.g. `/userinfo`), but nowadays implementations will allow accessing the issuer by default.
-  - `client_id` - client app identifier access token was issued to.
+  - `client_id` - client app identifier the access token was issued to.
   - `scope` - various scopes access token is scoped to, e.g. `openid profile imagegalleryapi`.
+- Default lifetime 60 minutes.
+
+##### Refresh token
+
+- A credential used to get new tokens.
+- Client must request "offline_access" flow to enable refresh tokens.
+- Default lifetime 30 days.
+- More [below](#refresh-tokens)
+
+##### Authentication System
+
+![Authentication System](https://user-images.githubusercontent.com/26722936/80860699-b12a1000-8c69-11ea-9d68-b917d8afdcbb.png)
 
 #### Relevant endpoints
 
@@ -133,12 +146,16 @@ This is a test.
 
 ### Authorization code flow
 
+#### Flowchart
+
+![Authorization code flow with PKCE protection](https://user-images.githubusercontent.com/26722936/80860693-a8d1d500-8c69-11ea-99ec-cb060b647cfc.png)
+
 #### Outline
 
 - `response_type=code`
 - Open Id Connect and OAuth2.
 - Utilizes front-channel and back-channel communication.
-- Authorization code is a short-lived proof of who the user is. It binds the front-end session between the user and the client with the back-end session between the client server and IDP. It is obtanied from the authorization endpoint.
+- Authorization code is a short-lived proof of who the user is. It binds the front-end session between the user and the client with the back-end session between the client server and IDP. It is obtanied from the authorization endpoint. Has a default lifetime of 5 minutes.
 - Identity token is obtained from the token endpoint. In it are claims used by the server to create a claims identity and log the user in using an encrypted cookie.
 - Access token is used as a Bearer token to access APIs.
 
@@ -169,7 +186,7 @@ This is a test.
 #### Authorization Code Injection Attack
 
 - If the attacker gets a hold of the users authorization code, he can swap the user's browser session with his own. This way the attacker now has the victim's privileges. Details can be found [here](https://tools.ietf.org/html/draft-ietf-oauth-security-topics-14#page-21).
-- Advised approach is to utilize PKCE (Proof Key for Code Exchange) when going with the authorization code flow. ![PKCE](https://user-images.githubusercontent.com/26722936/79879157-a0b6a180-83ee-11ea-9523-1e1ee3a9f771.png)
+- Advised approach is to utilize PKCE (Proof Key for Code Exchange) when going with the authorization code flow.
 - Setup:
   - At the IDP, you enable it per client, by adding a `RequirePkce = true`.
   - At the client app, configure the `OpenIdConnect` middleware with `options.UsePkce = true` (or just omit the line, since the middleware defaults to true).
@@ -257,18 +274,31 @@ This is a test.
 - Check out `.AddAuthorization(authorizationOptions => authorizationOptions.AddOptions(...) )` in [Startup.cs](src\ImageGallery.Client\Startup.cs) for a basic case involving several claims and demanding the user to be authenticated.
 - A more complex case might require calling into the database, reading and comparing claim values, accessing HttpContext to read route data etc. This can be done by using `IAuthorizationRequirement` marker interface and `AuthorizationHandler<T>`. Checkout out `.AddAuthorization(authorizationOptions => authorizationOptions.AddOptions(...) )` [Startup.cs](src\ImageGallery.API\Startup.cs), [MustOwnImageRequirement.cs](src\ImageGallery.API\Authorization\MustOwnImageRequirement.cs) and [MustOwnImageHandler.cs](src\ImageGallery.API\Authorization\MustOwnImageHandler.cs).
 
-### Hybrid Flow
+### Refresh tokens
 
-- Open Id Connect only.
-- Similar to authorization code flow, but identity token is returned alongside authorization code via the front-channel. Authorization code is still exchanged via the back-channel for the identity token. Both identity tokens are then compared for equality, this way attacks are mitigated.
-- Downside here is the identity token is received via the front-channel, potentially leaking personally identifiable information. Another downside is the client-side implementation of attack mitigation is more complex to implement, while with authorization code flow the client only has to generate a PKCE code verifier.
-- Conclusion: even though the hybrid flow is a secure option, rather use authorization code for ease of use.
+![Refresh token flow](https://user-images.githubusercontent.com/26722936/80861942-e63a6080-8c71-11ea-995a-f92128220a1c.png)
+
+- A credential used to get new tokens.
+- New tokens are received from the token endpoint. All tokens are refreshed: identity token, access token and refresh token.
+- Client must request `offline_access` flow to enable refresh tokens. "Offline" as used here means providing access to client app and API even when not logged into (a.k.a. offline) IDP. Don't forget to allow the client to request the `offline_access` scope.
+- At IDP:
+  - `Client.AllowOfflineAccess = true;` - enables client to request `offline_access` scope.
+  - `Client.AbsoluteRefreshTokenLifetime = ...;` - 30 days by default.
+  - `Client.RefreshTokenExpiration = TokenExpiration.Sliding; Client.SlidingRefreshTokenLifetime = ...;`. This is optional. Renews refresh token expiration date with each refresh, but total time cannot be larger than absolute refresh token lifetime (see above, 30 days by default).
+  - `Client.UpdateAccessTokenClaimsOnRefresh = true;` - by default, claims in the access token are not updated when the access token is refreshed for the duration of access token lifetime. Only when the refresh token expires (and the user authenticates again) is the access token refreshed. This property can be used to force claims update on every access token refresh.
+- Before calling the API, read the access token expiration value (`expires_at` claim) and if it has expired or is nearing expiration, client app should extract the refresh token and talk to the IDP to refresh the access token. Then client app should store the newly received id_token, access_token, refresh_token and `expires_at` claim (which can be stored as a token as well) and then sign in again, thus persisting all the tokens in the authentication cookie. This has been done in [BearerTokenHandler.cs](src\ImageGallery.Client\HttpHandlers\BearerTokenHandler.cs).
+- Please note: Open Id Connect middleware has a 5 minute skew, the function of which is to take into account small time differences between IDP and APIs (e.g. tokens `nbf` is a few minutes after the API servers current time, which would result in the access token being reject if not for the skew).
 
 ### Other flows
 
 - Implicit flow - via front-channel communication.
 - Resource owner password credentials - included for legacy reasons, should be avoided.
 - Client flow - only for machine to machine communication.
+- Hybrid flow:
+  - Open Id Connect only.
+  - Similar to authorization code flow, but identity token is returned alongside authorization code via the front-channel. Authorization code is still exchanged via the back-channel for the identity token. Both identity tokens are then compared for equality, this way attacks are mitigated.
+  - Downside here is the identity token is received via the front-channel, potentially leaking personally identifiable information. Another downside is the client-side implementation of attack mitigation is more complex to implement, while with authorization code flow the client only has to generate a PKCE code verifier.
+  - Conclusion: even though the hybrid flow is a secure option, rather use authorization code for ease of use.
 
 ### Open Points
 

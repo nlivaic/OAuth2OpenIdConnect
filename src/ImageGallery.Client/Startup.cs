@@ -64,6 +64,7 @@ namespace ImageGallery.Client
                     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                     options.Authority = "https://localhost:44318/";             // Our IDP. Middleware uses this to know where to find public keys and endpoints.
                     options.ClientId = "imagegalleryclient";
+                    options.ClientSecret = "secret";
                     options.ResponseType = "code";
                     // options.UsePkce = false;                                 // Defaults to true.
                     //options.CallbackPath = new PathString("...");             // "/signin-oidc" default value set up by OpenIdConnect middleware. Uncomment to set some other URI.
@@ -75,8 +76,8 @@ namespace ImageGallery.Client
                     options.Scope.Add("subscription_level");
                     options.Scope.Add("country");
                     options.Scope.Add("imagegalleryapi");                       // Allow access to API via the access token.
+                    options.Scope.Add("offline_access");                        // Ask for refresh token.
                     options.SaveTokens = true;                                  // Allows the middleware to save tokens received from OIDC provider to be used afterwards.
-                    options.ClientSecret = "secret";
                     options.GetClaimsFromUserInfoEndpoint = true;               // Call `/userinfo` to fetch additional identity claims, such as `given_name`, ˙last_name`, `address` (if `address` scope was requested.)
 
                     // options.ClaimActions.Remove("nbf");                      // Stop filtering "nbf" claim so it is fed into claim collection. Note: this is only for demo purposes, we have no need for "nbf", therefore this line is not needed.

@@ -234,7 +234,11 @@ namespace ImageGallery.Client.Controllers
         public async Task WriteOutIdentityInformation()
         {
             var identityToken = await HttpContext.GetTokenAsync(OpenIdConnectParameterNames.IdToken);
+            var accessToken = await HttpContext.GetTokenAsync(OpenIdConnectParameterNames.AccessToken);
+            var refreshToken = await HttpContext.GetTokenAsync(OpenIdConnectParameterNames.RefreshToken);
             Debug.WriteLine($"Identity token: {identityToken}");
+            Debug.WriteLine($"Access token: {accessToken}");
+            Debug.WriteLine($"Refresh token: {refreshToken}");
             foreach (var claim in User.Claims)
             {
                 Debug.WriteLine($"'{claim.Type}': '{claim.Value}'");

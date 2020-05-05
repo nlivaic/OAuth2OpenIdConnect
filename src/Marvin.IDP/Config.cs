@@ -27,7 +27,8 @@ namespace Marvin.IDP
                 new IdentityResource(
                     "country",
                     "Country",
-                    new string[]{ "country" })
+                    new string[]{ "country" }),
+
             };
 
         public static IEnumerable<ApiResource> Apis =>
@@ -52,6 +53,9 @@ namespace Marvin.IDP
                     RequirePkce = true,
                     RedirectUris = { "https://localhost:44389/signin-oidc" },   // Default value used by OIDC middleware on client.
                     PostLogoutRedirectUris = { "https://localhost:44389/signout-callback-oidc" },
+                    AllowOfflineAccess = true,                                  // Enable refresh tokens
+                    AccessTokenLifetime = 120,                                  // Just for testing purposes.
+                    AbsoluteRefreshTokenLifetime = 600,                         // Just for testing purposes.
                     AllowedScopes =
                     {
                         IdentityServerConstants.StandardScopes.OpenId,
