@@ -94,6 +94,7 @@ This is a test.
 - `/endsession` - deletes the authentication token on IDP
 - `/userinfo` - identity claims for user. Accessed with access token. Intended to be called only by client app, not the APIs.
 - `/introspect` - introspection endpoint used to exchange reference tokens for access tokens. Called by resource server. Requires authorization by the API (client_id, client_secret).
+- `/revocation` - revoking identity and access tokens.
 
 #### Claims
 
@@ -309,7 +310,9 @@ This is a test.
 ![Reference tokens](https://user-images.githubusercontent.com/26722936/81301289-25edb780-9079-11ea-99cf-0f9501a32f71.png)
 
 - Token format standing opposite of self-contained token format.
-- Resource servers exchange the reference token for an up-to-date access token, via the back-channel communication with the introspection endpoint. Resource server must authenticate with the IDP by sending the id and secret (as headers). This means the IDP must define a secret for the resource.
+- Primary use case is to allow better lifetime management of access tokens. Let's say we issued a self-contained access token and we want to revoke it due to a security issue. Since the resource server validates self-contained access tokens on its own, there is no way for us to revoke the token. However, with reference tokens all we are giving the client (and consequently the resource server) is an identifier allowing the IDP to return an up-to-date access token to the resource server.
+- IDP stores the reference token. This way it is easy to communicate to the IDP which token we want to revoke (more on revoking [below](#-revoking access-tokens)).
+- Resource servers exchange the reference token for an access token via the back-channel communication with the introspection endpoint. Resource server must authenticate with the IDP by sending the id and secret (as headers). This means the IDP must define a secret for the resource.
 - Pros: better access token lifetime management, access tokens are more secure since they are used only once.
 - Cons: resource server must communicate with the IDP on every request.
 - Can be combined with refresh tokens. It appears reference tokens also have an expiration date, which is set on the IDP in the same manner as the access token's expiration date.
@@ -319,6 +322,11 @@ This is a test.
   - Define a secret for the API resource.
 - How to enable on API:
   - Tell the authentication middleware your client secret.
+
+### Revoking tokens
+
+- Tokens can get revoked either via a custom built admin tool to delete the tokens from IDP database or by revoking the token when logging out by calling the revocation endpoint.
+- Take a look at []() on how revocation was implemented on logout.
 
 ### Other flows
 
