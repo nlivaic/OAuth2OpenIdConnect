@@ -51,6 +51,7 @@ namespace ImageGallery.API
                     {
                         options.Authority = "https://localhost:44318";      // Our IDP. Middleware uses this to know where to find public keys and endpoints.
                         options.ApiName = "imagegalleryapi";                // Allows the access token validator to check if the access token `audience` is for this API.
+                        options.ApiSecret = "secret";                       // Used by the introspection endpoint to exchange reference token for access token.
                     });
 
             services.AddHttpContextAccessor();

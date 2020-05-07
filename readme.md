@@ -21,6 +21,10 @@ This is a test.
 
 - JWT structure:
   - [Specification](https://tools.ietf.org/html/rfc7519)
+  - Segments:
+    - Header - metadata, signing algorithm.
+    - Payload - various claims.
+    - Signature - first two segments signed by the IDP using the signing algorithm.
 
 ##### Identity Token
 
@@ -68,6 +72,13 @@ This is a test.
 
 ![Authentication System](https://user-images.githubusercontent.com/26722936/80860699-b12a1000-8c69-11ea-9d68-b917d8afdcbb.png)
 
+##### Reference token
+
+- An identifier token.
+- It is a type of access token. Resource servers exchange it with every request for an up-to-date access token.
+- Sent to an introspection endpoint.
+- More [below](#-reference-tokens).
+
 #### Relevant endpoints
 
 ##### Client
@@ -79,9 +90,10 @@ This is a test.
 
 - `/.well-known/openid-configuration` - discovery document with all the other endpoints. The only endpoint in this section that is guaranteed to be found on this URI. Others below could be relative to some other URI. If you need to talk to any of the below endpoints, it is best to first call discovery document and fetch URIs from there.
 - `/authorize` - authorization endpoint
-- `/token` - token endpoint
+- `/token` - token endpoint, used to exchange authorization code for identity token, access token and refresh token (optional). It is also used to exchange refresh token for new identity token, access token and refresh token.
 - `/endsession` - deletes the authentication token on IDP
 - `/userinfo` - identity claims for user. Accessed with access token. Intended to be called only by client app, not the APIs.
+- `/introspect` - introspection endpoint used to exchange reference tokens for access tokens. Called by resource server. Requires authorization by the API (client_id, client_secret).
 
 #### Claims
 
@@ -287,7 +299,26 @@ This is a test.
   - `Client.RefreshTokenExpiration = TokenExpiration.Sliding; Client.SlidingRefreshTokenLifetime = ...;`. This is optional. Renews refresh token expiration date with each refresh, but total time cannot be larger than absolute refresh token lifetime (see above, 30 days by default).
   - `Client.UpdateAccessTokenClaimsOnRefresh = true;` - by default, claims in the access token are not updated when the access token is refreshed for the duration of access token lifetime. Only when the refresh token expires (and the user authenticates again) is the access token refreshed. This property can be used to force claims update on every access token refresh.
 - Before calling the API, read the access token expiration value (`expires_at` claim) and if it has expired or is nearing expiration, client app should extract the refresh token and talk to the IDP to refresh the access token. Then client app should store the newly received id_token, access_token, refresh_token and `expires_at` claim (which can be stored as a token as well) and then sign in again, thus persisting all the tokens in the authentication cookie. This has been done in [BearerTokenHandler.cs](src\ImageGallery.Client\HttpHandlers\BearerTokenHandler.cs).
-- Please note: Open Id Connect middleware has a 5 minute skew, the function of which is to take into account small time differences between IDP and APIs (e.g. tokens `nbf` is a few minutes after the API servers current time, which would result in the access token being reject if not for the skew).
+- Please note: Open Id Connect middleware has a 5 minute skew, the function of which is to take into account small time differences between IDP and APIs (e.g. token's `nbf` is a few minutes after the API servers current time, which would result in the access token being reject if not for the skew).
+- Seeing refresh tokens in action: waiting an hour for the access token to expire is too long. In the sample app, set a few values as below:
+  - In the client app: `BearerTokenHandler.GetAccessToken()`, variable `timeBeforeExpiration = 30`
+  - At the IDP: `AccessTokenLifetime = 120; AbsoluteRefreshTokenLifetime = 600;`
+
+### Reference tokens
+
+![Reference tokens](https://user-images.githubusercontent.com/26722936/81301289-25edb780-9079-11ea-99cf-0f9501a32f71.png)
+
+- Token format standing opposite of self-contained token format.
+- Resource servers exchange the reference token for an up-to-date access token, via the back-channel communication with the introspection endpoint. Resource server must authenticate with the IDP by sending the id and secret (as headers). This means the IDP must define a secret for the resource.
+- Pros: better access token lifetime management, access tokens are more secure since they are used only once.
+- Cons: resource server must communicate with the IDP on every request.
+- Can be combined with refresh tokens. It appears reference tokens also have an expiration date, which is set on the IDP in the same manner as the access token's expiration date.
+- Resource server exchanges reference token for access token via introspection endpoint.
+- How to enable on IDP:
+  - `Client.AccessTokenType = AccessTokenType.Reference` - turns access token into a reference format.
+  - Define a secret for the API resource.
+- How to enable on API:
+  - Tell the authentication middleware your client secret.
 
 ### Other flows
 

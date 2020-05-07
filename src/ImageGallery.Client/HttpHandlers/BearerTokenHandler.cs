@@ -48,7 +48,8 @@ namespace ImageGallery.Client.HttpHandlers
                 .HttpContext
                 .GetTokenAsync("expires_at");
             var expiresAt = DateTime.Parse(expiresAtRaw).ToUniversalTime();
-            var timeBeforeExpiration = 30;     // If access token is nearing expiration, we will want to refresh it anyway. Expressed in seconds.
+            var timeBeforeExpiration = 600;     // If access token is nearing expiration, we will want to refresh it anyway. Expressed in seconds.
+            // var timeBeforeExpiration = 30;     // Just for testing purposes.
             // Access token is not expired nor is nearing expiration.
             if ((expiresAt - DateTime.UtcNow).Seconds > timeBeforeExpiration)
             {

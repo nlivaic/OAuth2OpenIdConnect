@@ -28,7 +28,6 @@ namespace Marvin.IDP
                     "country",
                     "Country",
                     new string[]{ "country" }),
-
             };
 
         public static IEnumerable<ApiResource> Apis =>
@@ -40,6 +39,11 @@ namespace Marvin.IDP
                     new List<string>{               // IDP will include `role` claim with the access token when `imagegalleryapi` scope is requested.
                         "role"
                     })
+                    {
+                        ApiSecrets = new List<Secret> {
+                            new Secret("secret".Sha256())
+                        }
+                    }
             };
 
         public static IEnumerable<Client> Clients =>
@@ -51,11 +55,12 @@ namespace Marvin.IDP
                     ClientId = "imagegalleryclient",
                     AllowedGrantTypes = GrantTypes.Code,
                     RequirePkce = true,
+                    AccessTokenType = AccessTokenType.Reference,                // Reference token type.
                     RedirectUris = { "https://localhost:44389/signin-oidc" },   // Default value used by OIDC middleware on client.
                     PostLogoutRedirectUris = { "https://localhost:44389/signout-callback-oidc" },
                     AllowOfflineAccess = true,                                  // Enable refresh tokens
-                    AccessTokenLifetime = 120,                                  // Just for testing purposes.
-                    AbsoluteRefreshTokenLifetime = 600,                         // Just for testing purposes.
+                    //AccessTokenLifetime = 120,                                // Just for testing purposes.
+                    //AbsoluteRefreshTokenLifetime = 600,                       // Just for testing purposes.
                     AllowedScopes =
                     {
                         IdentityServerConstants.StandardScopes.OpenId,
