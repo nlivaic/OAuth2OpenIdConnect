@@ -95,6 +95,7 @@ This is a test.
 - `/userinfo` - identity claims for user. Accessed with access token. Intended to be called only by client app, not the APIs.
 - `/introspect` - introspection endpoint used to exchange reference tokens for access tokens. Called by resource server. Requires authorization by the API (client_id, client_secret).
 - `/revocation` - revoking identity and access tokens.
+- `.well-known/openid-configuration/jwks` - signing credential data. `kid` should be the same as the thumbprint.
 
 #### Claims
 
@@ -347,6 +348,19 @@ This is a test.
   - Issuer must match the IDP.
   - Expiration indicates a moment in time the token must not be accepted after.
   - Audience can be target API's URI.
+
+### Signing Certificates
+
+- Issues with developer signing certificate:
+  - if IDP is deployed behind a load balancer, requests might go to different instances.
+  - restarting the IDP creates a new certificate.
+- Powershell (with admin privileges): `New-SelfSignedCertificate -Subject "CN=MarvinIdSrvSigningCert" -CertStoreLocation "cert:\LocalMachine\My"`
+  - This will generate a new X509 certificate and store it locally in the Windows Certificate Store. You could also store it in Azure Key Vault.
+  - After generating the key, type `Manage computer certificates` to go to Windows Certificate Store. You will find your certificate under `Personal`. Open it and copy the thumbprint value to Notepad.
+  - At this point, the certificate is self-signed and, as such, not trusted by your computer. We have to **copy-paste** the certificate from the `Personal` to `Trusted Root Certification Authorities`. Please note: this move will only make your own computer work with this certificate. Other computers won't treat the certificate as trusted. Buy a certificate from a trusted CA to make it work in general.
+  - Now that we have the certificate, we have to load it from the certificate store and tell Identity Server how to use it. Consult [IDP's Startup.LoadCertificateFromStore()](src\Marvin.IDP\Startup.cs).
+  - Go to `.well-known/openid-configuration/jwks`, `kid` should be the same as the thumbprint.
+  - Please note: I ran Identity Server on Kestrel using a `dotnet.exe` process (no IIS involved). I had to allow the user running `dotnet.exe` read access to certificate private key. First, go to Task Manager and right click on `dotnet.exe` -> `Go To Details`. There, you can read the user name this process is running as. Now go to Windows Certificate Store -> find the certificate under Personal -> right click -> All Tasks -> Manage Private Keys -> add the user there.
 
 ### Other flows
 
