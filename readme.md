@@ -269,6 +269,7 @@ This is a test.
 - And yes, the filter naming above is confusing.
 - You can also map claim type from the token to another type in the claims collection.
 - It is advisable not to explicitly filter out claim `amr`, since some applications might allow or block certain functionalities, depending on how strong the authentication method was.
+- Access token has a minimal number of claims. Sometimes you will want to set a claim in it. You do this by saying to the IDP which claim goes with the target scope: `new ApiResource(..., new List<string> { claim here } )`.
 
 ##### Adding a new claim and a new scope
 
@@ -328,6 +329,18 @@ This is a test.
 - Reference tokens can get revoked either via a custom built admin tool to delete the tokens from IDP database or by revoking the token when logging out by calling the revocation endpoint.
 - In the sample project we revoked both the reference token and the refresh token. This takes two separate calls to the revocation endpoint.
 - Take a look at [GalleryController.Logout](src\ImageGallery.Client\Controllers\GalleryController.cs) on how revocation was implemented on logout.
+
+### Validating tokens
+
+- Done by the Open Id Connect middleware (on client) and Identity Server access token helper service (on API).
+- The following is just a brief overview of how both identity and access tokens should be validated.
+- Identity token Validation:
+  - Signature is validated. Each token is signed by the IDP using its private key. Client then fetches the public key and (probably) checks the signed hash sum.
+  - Nonce claim is checked. Must be the same value in both the token and in the initial authentication request. Used to mitigate replay attacks.
+  - Issuer must match the IDP.
+  - Audience must be target client's client id, `imagegalleryclient`.
+  - Expiration indicates a moment in time the token must not be accepted after.
+  - `at_hash` is access token's hashed value. Links the identity token and the between the identity token and the
 
 ### Other flows
 
