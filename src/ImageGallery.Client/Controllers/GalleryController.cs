@@ -185,8 +185,47 @@ namespace ImageGallery.Client.Controllers
             return RedirectToAction("Index");
         }
 
+        /// <summary>
+        /// Revokes access and refresh tokens.
+        /// Then clears the login cookies by signing out of client app.
+        /// Finally, logs out of IDP.
+        /// </summary>
+        /// <returns></returns>
         public async Task Logout()
         {
+            var idpClient = _httpClientFactory.CreateClient("IDPClient");
+            var discoveryResponse = await idpClient.GetDiscoveryDocumentAsync();
+            if (discoveryResponse.IsError)
+            {
+                throw new Exception($"A system fault happened: {discoveryResponse.Error}.");
+            }
+
+            var accessToken = await HttpContext.GetTokenAsync(OpenIdConnectParameterNames.AccessToken);
+            var revokeAccessTokenResponse = await idpClient.RevokeTokenAsync(
+                new TokenRevocationRequest
+                {
+                    Address = discoveryResponse.RevocationEndpoint,
+                    Token = accessToken,
+                    ClientId = "imagegalleryclient",
+                    ClientSecret = "secret"
+                });
+            if (revokeAccessTokenResponse.IsError)
+            {
+                throw new Exception($"A system fault happened: {revokeAccessTokenResponse.Error}.");
+            }
+            var refreshToken = await HttpContext.GetTokenAsync(OpenIdConnectParameterNames.RefreshToken);
+            var revokeRefreshTokenResponse = await idpClient.RevokeTokenAsync(
+                new TokenRevocationRequest
+                {
+                    Address = discoveryResponse.RevocationEndpoint,
+                    Token = refreshToken,
+                    ClientId = "imagegalleryclient",
+                    ClientSecret = "secret"
+                });
+            if (revokeRefreshTokenResponse.IsError)
+            {
+                throw new Exception($"A system fault happened: {revokeRefreshTokenResponse.Error}.");
+            }
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
         }

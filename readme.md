@@ -325,8 +325,9 @@ This is a test.
 
 ### Revoking tokens
 
-- Tokens can get revoked either via a custom built admin tool to delete the tokens from IDP database or by revoking the token when logging out by calling the revocation endpoint.
-- Take a look at []() on how revocation was implemented on logout.
+- Reference tokens can get revoked either via a custom built admin tool to delete the tokens from IDP database or by revoking the token when logging out by calling the revocation endpoint.
+- In the sample project we revoked both the reference token and the refresh token. This takes two separate calls to the revocation endpoint.
+- Take a look at [GalleryController.Logout](src\ImageGallery.Client\Controllers\GalleryController.cs) on how revocation was implemented on logout.
 
 ### Other flows
 
