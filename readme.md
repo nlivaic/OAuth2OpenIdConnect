@@ -335,12 +335,18 @@ This is a test.
 - Done by the Open Id Connect middleware (on client) and Identity Server access token helper service (on API).
 - The following is just a brief overview of how both identity and access tokens should be validated.
 - Identity token Validation:
-  - Signature is validated. Each token is signed by the IDP using its private key. Client then fetches the public key and (probably) checks the signed hash sum.
+  - Signature is validated. Each token is signed by the IDP using its private key. Client then fetches the public key and checks the signed hash sum.
   - Nonce claim is checked. Must be the same value in both the token and in the initial authentication request. Used to mitigate replay attacks.
   - Issuer must match the IDP.
   - Audience must be target client's client id, `imagegalleryclient`.
   - Expiration indicates a moment in time the token must not be accepted after.
-  - `at_hash` is access token's hashed value. Links the identity token and the between the identity token and the
+  - `at_hash` is access token's hashed value. Links the identity token and access token.
+- Access token validation:
+  - Resource server's validation steps are not preciselly specified. The guideline says resource server should call IDP (i.e. the introspection endpoint), but this can get expensive, so self-contained token validation can be performed as well.
+  - Signature is validated. Each token is signed by the IDP using its private key. API fetches the public key (that's why we told the API what the IDP's base URI is) and checks the signed hash sum.
+  - Issuer must match the IDP.
+  - Expiration indicates a moment in time the token must not be accepted after.
+  - Audience can be target API's URI.
 
 ### Other flows
 
