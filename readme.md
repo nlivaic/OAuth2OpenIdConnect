@@ -349,11 +349,13 @@ This is a test.
   - Expiration indicates a moment in time the token must not be accepted after.
   - Audience can be target API's URI.
 
-### Signing Certificates
+### Preparing for production environment
+
+#### Signing Certificates
 
 - Issues with developer signing certificate:
   - if IDP is deployed behind a load balancer, requests might go to different instances.
-  - restarting the IDP creates a new certificate.
+  - restarting the IDP (e.g. via application pool recycle) creates a new certificate, thus causing issues tokens' signatures to become invalid.
 - Powershell (with admin privileges): `New-SelfSignedCertificate -Subject "CN=MarvinIdSrvSigningCert" -CertStoreLocation "cert:\LocalMachine\My"`
   - This will generate a new X509 certificate and store it locally in the Windows Certificate Store. You could also store it in Azure Key Vault.
   - After generating the key, type `Manage computer certificates` to go to Windows Certificate Store. You will find your certificate under `Personal`. Open it and copy the thumbprint value to Notepad.
@@ -361,6 +363,19 @@ This is a test.
   - Now that we have the certificate, we have to load it from the certificate store and tell Identity Server how to use it. Consult [IDP's Startup.LoadCertificateFromStore()](src\Marvin.IDP\Startup.cs).
   - Go to `.well-known/openid-configuration/jwks`, `kid` should be the same as the thumbprint.
   - Please note: I ran Identity Server on Kestrel using a `dotnet.exe` process (no IIS involved). I had to allow the user running `dotnet.exe` read access to certificate private key. First, go to Task Manager and right click on `dotnet.exe` -> `Go To Details`. There, you can read the user name this process is running as. Now go to Windows Certificate Store -> find the certificate under Personal -> right click -> All Tasks -> Manage Private Keys -> add the user there.
+
+#### Configuration and Operational Data
+
+- Configuration data: clients, api and identity resources, startup configuration data.
+- Operational data: issued authorization, reference and refresh tokens, consents.
+- This type of data suffers from similar issues as signing certificates: load balancing and restarting the IDP causes configuration and operational data to disappear. Having one persistence store solves these issues.
+- Add packages to IDP project:
+  - `IdentityServer4.EntityFramework` containing implementations of `IResourceStore`, `IClientStore` and `IPersistedGrantStore`. Also contains two contexts, `ConfigurationDbContext` and `PersistedGrantDbContext`.
+  - `Microsoft.EntityFrameworkCore.Design`
+- Persisting Configuration Data in [Startup.ConfigureServices](src\Marvin.IDP\Startup.cs) method with `builder.AddConfigurationStore(options => ...)`.
+  - Define the connection string. We did it in source code for demo purposes, take care do put it somewhere safe when going to production.
+  - Since database context is in another project, we have to tell EF Core where to find it. Execute migrations, you can do it manually on dev environment, from IDP project folder: `dotnet ef migrations add InitialIdentityServerConfigurationDBMigration --context ConfigurationDbContext` and `dotnet ef migrations add InitialIdentityServerPersistedGrantDBMigration --context PersistedGrantDbContext`.
+  - Write a data seeder for development purposes. You can find it in [Startup.SeedTestData](src\Marvin.IDP\Startup.cs), it also migrates the database.
 
 ### Other flows
 
