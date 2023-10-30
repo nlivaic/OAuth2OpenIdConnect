@@ -8,6 +8,11 @@ This is a test.
 
 ### Basics
 
+* OAuth2 is a delegation protocol
+ * It allows client to do stuff on behalf of user. The user must allow client to do these things. As a side effect, the client can read user's profile and get to know who they are.
+ * Thus it can be considered a pseudo-authentication protocol.
+* Open Id Connect (OIDC) is used to get the identity information in a standardized format, meaning the claims and scopes are standardized. More on that below.
+
 #### Flows/grants
 
 - Public client cannot be trusted with client credentials. E.g. browser-side app.
